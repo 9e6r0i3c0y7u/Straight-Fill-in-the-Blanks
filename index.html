@@ -3,20 +3,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>挖空格直式除法出題器</title>
+  <title>直式除法挖空格練習</title>
   <style>
     :root{
       --bg:#f5f7fb;
       --card:#ffffff;
       --text:#1f2937;
       --muted:#6b7280;
-      --line:#111827;
       --border:#d1d5db;
+      --line:#111827;
+      --blank-bg:#eef6ff;
+      --blank-border:#94a3b8;
       --accent:#2563eb;
-      --blank:#eff6ff;
+      --cell:44px;
     }
 
-    *{box-sizing:border-box;}
+    *{ box-sizing:border-box; }
 
     body{
       margin:0;
@@ -26,7 +28,7 @@
     }
 
     .wrap{
-      max-width:1200px;
+      max-width:1400px;
       margin:0 auto;
       padding:24px;
     }
@@ -38,8 +40,8 @@
 
     .sub{
       color:var(--muted);
-      margin-bottom:18px;
       line-height:1.6;
+      margin-bottom:18px;
     }
 
     .panel{
@@ -47,8 +49,8 @@
       border:1px solid var(--border);
       border-radius:16px;
       padding:18px;
-      margin-bottom:18px;
       box-shadow:0 8px 24px rgba(0,0,0,.05);
+      margin-bottom:18px;
     }
 
     .controls{
@@ -59,7 +61,7 @@
     }
 
     .field{
-      min-width:140px;
+      min-width:150px;
     }
 
     .field label{
@@ -73,16 +75,16 @@
     .field select{
       width:100%;
       padding:10px 12px;
+      font-size:15px;
       border:1px solid var(--border);
       border-radius:10px;
-      font-size:15px;
       background:#fff;
     }
 
     .btns{
       display:flex;
-      gap:10px;
       flex-wrap:wrap;
+      gap:10px;
       margin-top:14px;
     }
 
@@ -95,30 +97,20 @@
       cursor:pointer;
     }
 
-    .primary{
-      background:var(--accent);
-      color:#fff;
-    }
-
-    .secondary{
-      background:#dbeafe;
-      color:#1d4ed8;
-    }
-
-    .ghost{
-      background:#eef2f7;
-      color:var(--text);
-    }
+    .primary{ background:var(--accent); color:#fff; }
+    .secondary{ background:#dbeafe; color:#1d4ed8; }
+    .ghost{ background:#eef2f7; color:var(--text); }
 
     .meta{
       margin-top:10px;
-      color:var(--muted);
       font-size:14px;
+      color:var(--muted);
     }
 
+    /* 關鍵修正：不要讓卡片窄到壓壞直式 */
     .sheet{
       display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+      grid-template-columns:repeat(auto-fit, minmax(520px, 1fr));
       gap:18px;
     }
 
@@ -126,113 +118,124 @@
       background:#fff;
       border:1px solid var(--border);
       border-radius:16px;
-      padding:16px;
+      padding:18px;
       box-shadow:0 8px 20px rgba(0,0,0,.04);
+      overflow-x:auto;
     }
 
     .title{
       font-size:18px;
       font-weight:700;
-      margin-bottom:10px;
+      margin-bottom:12px;
     }
 
-    /* 直式區 */
-    .division{
-      display:inline-block;
-      font-family:"Courier New",monospace;
-      font-size:30px;
-      line-height:1.1;
-      letter-spacing:0.04em;
+    /* 真正固定格線 */
+    .division-wrap{
+      min-width:480px;
     }
 
-    .row{
-      height:1.2em;
-      white-space:pre;
+    .division-grid{
+      display:grid;
+      grid-template-columns: 52px repeat(5, var(--cell));
+      grid-template-rows: repeat(7, var(--cell));
+      align-items:center;
+      justify-items:center;
+      position:relative;
+      margin-top:6px;
+      margin-bottom:8px;
     }
 
-    .answer-row{
-      padding-left:2.6ch;
-    }
-
-    .body-row{
-      display:flex;
-      align-items:flex-start;
-    }
-
-    .divisor{
-      width:2ch;
-      text-align:right;
-      padding-right:.2ch;
-    }
-
-    .bracket-area{
-      border-top:3px solid var(--line);
-      border-left:3px solid var(--line);
-      padding-left:.3ch;
-      min-width:6ch;
-    }
-
-    .step-row{
-      padding-left:2.6ch;
+    .num{
+      font-size:24px;
+      line-height:1;
+      font-family:"Courier New", monospace;
     }
 
     .blank{
-      display:inline-flex;
+      width:34px;
+      height:40px;
+      border:2px solid var(--blank-border);
+      background:var(--blank-bg);
+      border-radius:6px;
+      display:flex;
       align-items:center;
       justify-content:center;
-      width:1ch;
-      height:1.15em;
-      border:2px solid #9ca3af;
-      background:var(--blank);
-      border-radius:4px;
-      font-family:inherit;
-      font-size:1em;
-      vertical-align:middle;
     }
 
     .blank input{
       width:100%;
       height:100%;
       border:none;
-      outline:none;
-      text-align:center;
-      font-family:inherit;
-      font-size:1em;
       background:transparent;
+      text-align:center;
+      font-size:24px;
+      font-family:"Courier New", monospace;
+      outline:none;
       padding:0;
-      margin:0;
+    }
+
+    .line-top{
+      grid-column:2 / 7;
+      grid-row:2;
+      align-self:start;
+      justify-self:stretch;
+      border-top:4px solid var(--line);
+      height:0;
+      transform:translateY(-2px);
+      pointer-events:none;
+    }
+
+    .line-left{
+      grid-column:2;
+      grid-row:2 / 4;
+      align-self:stretch;
+      justify-self:start;
+      border-left:4px solid var(--line);
+      width:0;
+      transform:translateX(-2px);
+      pointer-events:none;
     }
 
     .hint{
-      margin-top:10px;
       font-size:13px;
       color:var(--muted);
+      margin-top:8px;
       line-height:1.5;
     }
 
     .eq{
       margin-top:10px;
-      font-size:14px;
+      font-size:15px;
       color:#374151;
     }
 
+    @media (max-width: 700px){
+      .sheet{
+        grid-template-columns:1fr;
+      }
+      .problem{
+        padding:14px;
+      }
+      .division-wrap{
+        min-width:460px;
+      }
+    }
+
     @media print{
-      body{background:#fff;}
-      .no-print{display:none !important;}
-      .wrap{max-width:none;padding:10mm;}
-      .panel{box-shadow:none;}
-      .problem{break-inside:avoid; box-shadow:none;}
-      .sheet{grid-template-columns:repeat(2,1fr);}
+      body{ background:#fff; }
+      .no-print{ display:none !important; }
+      .wrap{ max-width:none; padding:10mm; }
+      .panel{ box-shadow:none; }
+      .sheet{ grid-template-columns:repeat(2, 1fr); }
+      .problem{ break-inside:avoid; box-shadow:none; }
     }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="no-print">
-      <h1>挖空格直式除法出題器</h1>
-      <div class="sub">
-        會自動產生「幾乎寫完，只留幾格給學生填」的直式除法題目，版型接近你給的圖片。
-      </div>
+      <h1>直式除法挖空格練習</h1>
+      <div class="sub">像作業簿一樣，直式大部分已寫好，只留下幾格讓學生填。</div>
     </div>
 
     <div class="panel no-print">
@@ -243,7 +246,7 @@
         </div>
 
         <div class="field">
-          <label for="blankCount">每題留幾格空白</label>
+          <label for="blankCount">每題空格數</label>
           <select id="blankCount">
             <option value="2">2 格</option>
             <option value="3" selected>3 格</option>
@@ -294,283 +297,217 @@
       return out;
     }
 
-    function generateRawProblem(mode){
+    function generateProblem(mode){
       for(let t = 0; t < 5000; t++){
-        let divisor, dividend;
-
-        if(mode === "1d2d"){
-          divisor = randInt(2, 9);
-          dividend = randInt(10, 99);
-        }else{
-          divisor = randInt(2, 9);
-          dividend = randInt(100, 999);
-        }
-
+        const divisor = randInt(2, 9);
+        const dividend = mode === "1d2d" ? randInt(10, 99) : randInt(100, 999);
         const quotient = Math.floor(dividend / divisor);
         const remainder = dividend % divisor;
-
         if(quotient < 10) continue;
 
-        const dividendStr = String(dividend);
-        const quotientStr = String(quotient);
+        const digits = String(dividend).split('').map(Number);
 
-        const firstPart = Number(dividendStr.slice(0, 1));
-        const useTwoDigitsFirst = firstPart < divisor;
-        const firstCurrent = useTwoDigitsFirst
-          ? Number(dividendStr.slice(0, 2))
-          : Number(dividendStr.slice(0, 1));
+        let current = 0;
+        const qDigits = [];
+        const steps = [];
 
-        const q1 = Math.floor(firstCurrent / divisor);
-        if(q1 === 0) continue;
+        for(let i = 0; i < digits.length; i++){
+          current = current * 10 + digits[i];
+          const q = Math.floor(current / divisor);
+          qDigits.push(q);
+          const product = q * divisor;
+          const rem = current - product;
 
-        const p1 = q1 * divisor;
-        const r1 = firstCurrent - p1;
+          if(q !== 0 || steps.length > 0){
+            steps.push({
+              current,
+              q,
+              product,
+              remainder: rem,
+              endIndex: i
+            });
+          }
+          current = rem;
+        }
 
-        let secondDigitIndex = useTwoDigitsFirst ? 2 : 1;
-        if(secondDigitIndex >= dividendStr.length) continue;
+        const qStr = String(quotient);
 
-        const downDigit = Number(dividendStr[secondDigitIndex]);
-        const secondCurrent = r1 * 10 + downDigit;
-        const q2 = Math.floor(secondCurrent / divisor);
-        const p2 = q2 * divisor;
-        const r2 = secondCurrent - p2;
+        if(steps.length < 2) continue;
+
+        const s1 = steps[0];
+        const s2 = steps[1];
 
         return {
           divisor,
           dividend,
           quotient,
           remainder,
-          dividendStr,
-          quotientStr,
-          useTwoDigitsFirst,
-          firstCurrent,
-          q1,
-          p1,
-          r1,
-          downDigit,
-          secondCurrent,
-          q2,
-          p2,
-          r2
+          qStr,
+          step1: s1,
+          step2: s2
         };
       }
-
-      throw new Error("題目產生失敗，請重試");
+      throw new Error("題目產生失敗");
     }
 
-    function createLayout(problem){
-      // 做成固定寬度字串，方便挖空
-      const dividendStr = problem.dividendStr;
-      const quotientStr = problem.quotientStr;
+    function makeCells(problem){
+      const dividendStr = String(problem.dividend).padStart(3, " ");
+      const quotientStr = String(problem.quotient).padStart(3, " ");
 
-      const width = Math.max(dividendStr.length, quotientStr.length) + 1;
+      const s1Product = String(problem.step1.product).padStart(3, " ");
+      const s1Remain  = String(problem.step1.remainder).padStart(3, " ");
+      const s2Current = String(problem.step2.current).padStart(3, " ");
+      const s2Product = String(problem.step2.product).padStart(3, " ");
+      const finalRem  = String(problem.remainder).padStart(3, " ");
 
-      const rows = [];
+      const cells = [];
 
-      // 第 1 行：商
-      rows.push({
-        type: "answer",
-        text: quotientStr.padStart(width, " ")
-      });
+      // 第1列：商，放在第4~6欄
+      for(let i = 0; i < 3; i++){
+        cells.push({
+          row: 1, col: 4 + i,
+          value: quotientStr[i],
+          blankable: true
+        });
+      }
 
-      // 第 2 行：除數 + 被除數
-      rows.push({
-        type: "body",
-        divisor: String(problem.divisor),
-        text: dividendStr.padStart(width, " ")
-      });
+      // 第2列：除數在第1欄；被除數在第4~6欄
+      cells.push({ row: 2, col: 1, value: String(problem.divisor), blankable: false });
+      for(let i = 0; i < 3; i++){
+        cells.push({
+          row: 2, col: 4 + i,
+          value: dividendStr[i],
+          blankable: false
+        });
+      }
 
-      // 第 3 行：第一個乘積
-      rows.push({
-        type: "step",
-        text: String(problem.p1).padStart(problem.useTwoDigitsFirst ? width - 1 : width, " ")
-      });
-
-      // 第 4 行：第一個相減結果
-      rows.push({
-        type: "step",
-        text: String(problem.r1).padStart(problem.useTwoDigitsFirst ? width - 1 : width, " ")
-      });
-
-      // 第 5 行：往下移後的新數
-      rows.push({
-        type: "step",
-        text: String(problem.secondCurrent).padStart(width, " ")
-      });
-
-      // 第 6 行：第二個乘積
-      rows.push({
-        type: "step",
-        text: String(problem.p2).padStart(width, " ")
-      });
-
-      // 第 7 行：最後餘數
-      rows.push({
-        type: "step",
-        text: String(problem.r2).padStart(width, " ")
-      });
-
-      return rows;
-    }
-
-    function getBlankCandidates(problem, rows){
-      // 優先挖這些位置：商、第一乘積、第一餘數、第二乘積、最後餘數
-      const candidates = [];
-
-      // row 0 商
-      for(let i = 0; i < rows[0].text.length; i++){
-        if(rows[0].text[i] !== " "){
-          candidates.push({row:0, col:i});
+      // 第3列：第一次乘積
+      for(let i = 0; i < 3; i++){
+        if(s1Product[i] !== " "){
+          cells.push({
+            row: 3, col: 4 + i,
+            value: s1Product[i],
+            blankable: true
+          });
         }
       }
 
-      // row 2,3,5,6
-      [2,3,5,6].forEach(r => {
-        for(let i = 0; i < rows[r].text.length; i++){
-          if(rows[r].text[i] !== " "){
-            candidates.push({row:r, col:i});
-          }
-        }
-      });
-
-      return candidates;
-    }
-
-    function applyBlanks(rows, blankCount){
-      const cloned = rows.map(r => ({...r}));
-      const candidates = [];
-
-      cloned.forEach((row, rowIndex) => {
-        if(!row.text) return;
-        for(let i = 0; i < row.text.length; i++){
-          if(row.text[i] !== " "){
-            candidates.push({row: rowIndex, col: i});
-          }
-        }
-      });
-
-      // 避免把被除數和除數本體挖掉，所以只挖指定列
-      const filtered = candidates.filter(c => [0,2,3,5,6].includes(c.row));
-      const chosen = pickRandom(filtered, blankCount);
-
-      chosen.forEach(pos => {
-        const arr = cloned[pos.row].text.split("");
-        arr[pos.col] = "_";
-        cloned[pos.row].text = arr.join("");
-      });
-
-      return { rows: cloned, chosen };
-    }
-
-    function renderTextWithBlanks(text, answerMode){
-      let html = "";
-      for(const ch of text){
-        if(ch === " "){
-          html += "&nbsp;";
-        }else if(ch === "_"){
-          if(answerMode){
-            html += `<span class="blank">?</span>`;
-          }else{
-            html += `<span class="blank"><input maxlength="1"></span>`;
-          }
-        }else{
-          html += ch;
+      // 第4列：第一次相減後
+      for(let i = 0; i < 3; i++){
+        if(s1Remain[i] !== " "){
+          cells.push({
+            row: 4, col: 4 + i,
+            value: s1Remain[i],
+            blankable: true
+          });
         }
       }
-      return html;
-    }
 
-    function renderSolvedText(blankedText, originalText, answerMode){
-      let html = "";
-      for(let i = 0; i < blankedText.length; i++){
-        const b = blankedText[i];
-        const o = originalText[i];
-
-        if(b === " "){
-          html += "&nbsp;";
-        }else if(b === "_"){
-          if(answerMode){
-            html += `<span class="blank">${o}</span>`;
-          }else{
-            html += `<span class="blank"><input maxlength="1" data-answer="${o}"></span>`;
-          }
-        }else{
-          html += b;
+      // 第5列：往下移後的新數
+      for(let i = 0; i < 3; i++){
+        if(s2Current[i] !== " "){
+          cells.push({
+            row: 5, col: 4 + i,
+            value: s2Current[i],
+            blankable: false
+          });
         }
       }
-      return html;
+
+      // 第6列：第二次乘積
+      for(let i = 0; i < 3; i++){
+        if(s2Product[i] !== " "){
+          cells.push({
+            row: 6, col: 4 + i,
+            value: s2Product[i],
+            blankable: true
+          });
+        }
+      }
+
+      // 第7列：最後餘數
+      for(let i = 0; i < 3; i++){
+        if(finalRem[i] !== " "){
+          cells.push({
+            row: 7, col: 4 + i,
+            value: finalRem[i],
+            blankable: true
+          });
+        }
+      }
+
+      return cells;
     }
 
-    function renderProblem(problem, index){
-      const originalRows = createLayout(problem);
-      const blanked = applyBlanks(originalRows, Number($("blankCount").value));
-      const rows = blanked.rows;
-
+    function renderProblem(problem, index, blankCount){
       const div = document.createElement("div");
       div.className = "problem";
 
-      const eqText = `${problem.dividend} ÷ ${problem.divisor} = ${problem.quotient} … ${problem.remainder}`;
+      const cells = makeCells(problem);
+      const blankCandidates = cells.filter(c => c.blankable);
+      const chosen = pickRandom(blankCandidates, Math.min(blankCount, blankCandidates.length));
 
-      div.innerHTML = `
+      const blankSet = new Set(chosen.map(c => `${c.row}-${c.col}`));
+
+      let html = `
         <div class="title">第 ${index + 1} 題</div>
-        <div class="division">
-          <div class="row answer-row">
-            ${renderSolvedText(rows[0].text, originalRows[0].text, showAnswers)}
-          </div>
-
-          <div class="body-row">
-            <div class="divisor row">${problem.divisor}</div>
-            <div class="bracket-area row">
-              ${originalRows[1].text.replace(/ /g, "&nbsp;")}
-            </div>
-          </div>
-
-          <div class="row step-row">
-            ${renderSolvedText(rows[2].text, originalRows[2].text, showAnswers)}
-          </div>
-          <div class="row step-row">
-            ${renderSolvedText(rows[3].text, originalRows[3].text, showAnswers)}
-          </div>
-          <div class="row step-row">
-            ${renderSolvedText(rows[4].text, originalRows[4].text, true)}
-          </div>
-          <div class="row step-row">
-            ${renderSolvedText(rows[5].text, originalRows[5].text, showAnswers)}
-          </div>
-          <div class="row step-row">
-            ${renderSolvedText(rows[6].text, originalRows[6].text, showAnswers)}
-          </div>
-        </div>
-
-        <div class="hint">
-          題目會故意只挖幾格，讓學生補上關鍵數字。
-        </div>
-
-        <div class="eq">
-          ${showAnswers ? eqText : `${problem.dividend} ÷ ${problem.divisor} = ______`}
-        </div>
+        <div class="division-wrap">
+          <div class="division-grid">
+            <div class="line-top"></div>
+            <div class="line-left"></div>
       `;
 
+      for(let row = 1; row <= 7; row++){
+        for(let col = 1; col <= 6; col++){
+          const found = cells.find(c => c.row === row && c.col === col);
+          if(!found) continue;
+
+          const key = `${row}-${col}`;
+          const style = `grid-row:${row};grid-column:${col};`;
+
+          if(blankSet.has(key)){
+            if(showAnswers){
+              html += `<div class="blank num" style="${style}">${found.value}</div>`;
+            }else{
+              html += `<div class="blank" style="${style}"><input maxlength="1" data-answer="${found.value}"></div>`;
+            }
+          }else{
+            html += `<div class="num" style="${style}">${found.value}</div>`;
+          }
+        }
+      }
+
+      html += `
+          </div>
+        </div>
+        <div class="hint">題目只挖掉幾個關鍵數字，讓解題者補上。</div>
+        <div class="eq">${showAnswers
+          ? `${problem.dividend} ÷ ${problem.divisor} = ${problem.quotient}${problem.remainder ? ` … ${problem.remainder}` : ""}`
+          : `${problem.dividend} ÷ ${problem.divisor} = ______`}</div>
+      `;
+
+      div.innerHTML = html;
       return div;
     }
 
     function generateAll(){
       const count = Math.max(1, Math.min(20, Number($("count").value) || 6));
+      const blankCount = Number($("blankCount").value);
       const mode = $("mode").value;
 
       problems = [];
       for(let i = 0; i < count; i++){
-        problems.push(generateRawProblem(mode));
+        problems.push(generateProblem(mode));
       }
 
       const sheet = $("sheet");
       sheet.innerHTML = "";
       problems.forEach((p, i) => {
-        sheet.appendChild(renderProblem(p, i));
+        sheet.appendChild(renderProblem(p, i, blankCount));
       });
 
       $("summary").textContent =
-        `已產生 ${count} 題｜${mode === "1d3d" ? "一位數除三位數" : "一位數除二位數"}｜每題 ${$("blankCount").value} 格空白`;
+        `已產生 ${count} 題｜${mode === "1d3d" ? "一位數除三位數" : "一位數除二位數"}｜每題 ${blankCount} 格空白`;
     }
 
     $("generateBtn").addEventListener("click", generateAll);
