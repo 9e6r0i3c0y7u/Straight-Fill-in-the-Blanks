@@ -107,7 +107,6 @@
       color:var(--muted);
     }
 
-    /* 關鍵修正：不要讓卡片窄到壓壞直式 */
     .sheet{
       display:grid;
       grid-template-columns:repeat(auto-fit, minmax(520px, 1fr));
@@ -129,15 +128,16 @@
       margin-bottom:12px;
     }
 
-    /* 真正固定格線 */
     .division-wrap{
-      min-width:480px;
+      min-width:420px;
     }
 
+    /* col1 = 除數
+       col2 = 除號直線
+       col3~5 = 百位、十位、個位 */
     .division-grid{
       display:grid;
-      grid-template-columns: 52px repeat(5, var(--cell));
-      grid-template-rows: repeat(7, var(--cell));
+      grid-template-columns: 52px 24px repeat(3, var(--cell));
       align-items:center;
       justify-items:center;
       position:relative;
@@ -149,6 +149,7 @@
       font-size:24px;
       line-height:1;
       font-family:"Courier New", monospace;
+      z-index:2;
     }
 
     .blank{
@@ -160,6 +161,7 @@
       display:flex;
       align-items:center;
       justify-content:center;
+      z-index:2;
     }
 
     .blank input{
@@ -175,25 +177,33 @@
     }
 
     .line-top{
-      grid-column:2 / 7;
-      grid-row:2;
       align-self:start;
       justify-self:stretch;
       border-top:4px solid var(--line);
       height:0;
       transform:translateY(-2px);
       pointer-events:none;
+      z-index:1;
     }
 
     .line-left{
-      grid-column:2;
-      grid-row:2 / 4;
       align-self:stretch;
       justify-self:start;
       border-left:4px solid var(--line);
       width:0;
       transform:translateX(-2px);
       pointer-events:none;
+      z-index:1;
+    }
+
+    .minus-line{
+      align-self:center;
+      justify-self:stretch;
+      border-top:3px solid var(--line);
+      height:0;
+      transform:translateY(10px);
+      pointer-events:none;
+      z-index:1;
     }
 
     .hint{
@@ -217,7 +227,7 @@
         padding:14px;
       }
       .division-wrap{
-        min-width:460px;
+        min-width:400px;
       }
     }
 
@@ -235,7 +245,7 @@
   <div class="wrap">
     <div class="no-print">
       <h1>直式除法挖空格練習</h1>
-      <div class="sub">像作業簿一樣，直式大部分已寫好，只留下幾格讓學生填。</div>
+      <div class="sub">像作業簿一樣，直式大部分已寫好，只留下幾格讓學生填，並依照位值對齊。</div>
     </div>
 
     <div class="panel no-print">
@@ -303,162 +313,177 @@
         const dividend = mode === "1d2d" ? randInt(10, 99) : randInt(100, 999);
         const quotient = Math.floor(dividend / divisor);
         const remainder = dividend % divisor;
+
         if(quotient < 10) continue;
 
         const digits = String(dividend).split('').map(Number);
-
         let current = 0;
+        let started = false;
         const qDigits = [];
         const steps = [];
 
         for(let i = 0; i < digits.length; i++){
           current = current * 10 + digits[i];
+
+          if(!started && current < divisor){
+            qDigits.push(0);
+            continue;
+          }
+
+          started = true;
           const q = Math.floor(current / divisor);
-          qDigits.push(q);
           const product = q * divisor;
           const rem = current - product;
 
-          if(q !== 0 || steps.length > 0){
-            steps.push({
-              current,
-              q,
-              product,
-              remainder: rem,
-              endIndex: i
-            });
-          }
+          qDigits.push(q);
+          steps.push({
+            current,
+            q,
+            product,
+            remainder: rem,
+            endIndex: i,
+            currentStr: String(current),
+            productStr: String(product),
+            remainderStr: String(rem)
+          });
+
           current = rem;
         }
 
-        const qStr = String(quotient);
-
         if(steps.length < 2) continue;
-
-        const s1 = steps[0];
-        const s2 = steps[1];
 
         return {
           divisor,
           dividend,
           quotient,
           remainder,
-          qStr,
-          step1: s1,
-          step2: s2
+          digits: String(dividend),
+          qStr: String(quotient),
+          steps
         };
       }
+
       throw new Error("題目產生失敗");
     }
 
-    function makeCells(problem){
-      const dividendStr = String(problem.dividend).padStart(3, " ");
-      const quotientStr = String(problem.quotient).padStart(3, " ");
-
-      const s1Product = String(problem.step1.product).padStart(3, " ");
-      const s1Remain  = String(problem.step1.remainder).padStart(3, " ");
-      const s2Current = String(problem.step2.current).padStart(3, " ");
-      const s2Product = String(problem.step2.product).padStart(3, " ");
-      const finalRem  = String(problem.remainder).padStart(3, " ");
-
-      const cells = [];
-
-      // 第1列：商，放在第4~6欄
-      for(let i = 0; i < 3; i++){
+    function placeNumber(cells, row, endCol, str, blankable = true){
+      const chars = String(str).split("");
+      const startCol = endCol - chars.length + 1;
+      for(let i = 0; i < chars.length; i++){
         cells.push({
-          row: 1, col: 4 + i,
-          value: quotientStr[i],
-          blankable: true
+          row,
+          col: startCol + i,
+          value: chars[i],
+          blankable
         });
       }
+    }
 
-      // 第2列：除數在第1欄；被除數在第4~6欄
-      cells.push({ row: 2, col: 1, value: String(problem.divisor), blankable: false });
-      for(let i = 0; i < 3; i++){
+    function makeCells(problem){
+      const cells = [];
+      const lines = [];
+
+      const dividendStr = String(problem.dividend);
+      const quotientStr = String(problem.quotient);
+
+      const is2DigitDividend = dividendStr.length === 2;
+      const dividendStartCol = is2DigitDividend ? 4 : 3;
+      const dividendEndCol = dividendStartCol + dividendStr.length - 1;
+
+      const totalRows = 2 + problem.steps.length * 2;
+
+      // 商
+      placeNumber(cells, 1, dividendEndCol, quotientStr, true);
+
+      // 除數
+      cells.push({
+        row: 2,
+        col: 1,
+        value: String(problem.divisor),
+        blankable: false
+      });
+
+      // 被除數
+      for(let i = 0; i < dividendStr.length; i++){
         cells.push({
-          row: 2, col: 4 + i,
+          row: 2,
+          col: dividendStartCol + i,
           value: dividendStr[i],
           blankable: false
         });
       }
 
-      // 第3列：第一次乘積
-      for(let i = 0; i < 3; i++){
-        if(s1Product[i] !== " "){
-          cells.push({
-            row: 3, col: 4 + i,
-            value: s1Product[i],
-            blankable: true
-          });
+      // 每一步：乘積 + 下一步帶下來的數 / 最後餘數
+      let row = 3;
+
+      for(let i = 0; i < problem.steps.length; i++){
+        const step = problem.steps[i];
+        const endCol = dividendStartCol + step.endIndex;
+        const startCol = endCol - String(step.product).length + 1;
+
+        // 乘積
+        placeNumber(cells, row, endCol, step.productStr, true);
+
+        // 乘積下面的橫線
+        lines.push({
+          row,
+          startCol,
+          endCol
+        });
+
+        // 下一行
+        if(i < problem.steps.length - 1){
+          const nextStep = problem.steps[i + 1];
+          const nextEndCol = dividendStartCol + nextStep.endIndex;
+          placeNumber(cells, row + 1, nextEndCol, nextStep.currentStr, false);
+        } else {
+          placeNumber(cells, row + 1, endCol, step.remainderStr, true);
         }
+
+        row += 2;
       }
 
-      // 第4列：第一次相減後
-      for(let i = 0; i < 3; i++){
-        if(s1Remain[i] !== " "){
-          cells.push({
-            row: 4, col: 4 + i,
-            value: s1Remain[i],
-            blankable: true
-          });
-        }
-      }
-
-      // 第5列：往下移後的新數
-      for(let i = 0; i < 3; i++){
-        if(s2Current[i] !== " "){
-          cells.push({
-            row: 5, col: 4 + i,
-            value: s2Current[i],
-            blankable: false
-          });
-        }
-      }
-
-      // 第6列：第二次乘積
-      for(let i = 0; i < 3; i++){
-        if(s2Product[i] !== " "){
-          cells.push({
-            row: 6, col: 4 + i,
-            value: s2Product[i],
-            blankable: true
-          });
-        }
-      }
-
-      // 第7列：最後餘數
-      for(let i = 0; i < 3; i++){
-        if(finalRem[i] !== " "){
-          cells.push({
-            row: 7, col: 4 + i,
-            value: finalRem[i],
-            blankable: true
-          });
-        }
-      }
-
-      return cells;
+      return {
+        cells,
+        lines,
+        totalRows
+      };
     }
 
     function renderProblem(problem, index, blankCount){
       const div = document.createElement("div");
       div.className = "problem";
 
-      const cells = makeCells(problem);
+      const { cells, lines, totalRows } = makeCells(problem);
+
       const blankCandidates = cells.filter(c => c.blankable);
       const chosen = pickRandom(blankCandidates, Math.min(blankCount, blankCandidates.length));
-
       const blankSet = new Set(chosen.map(c => `${c.row}-${c.col}`));
 
       let html = `
         <div class="title">第 ${index + 1} 題</div>
         <div class="division-wrap">
-          <div class="division-grid">
-            <div class="line-top"></div>
-            <div class="line-left"></div>
+          <div class="division-grid" style="grid-template-rows: repeat(${totalRows}, var(--cell));">
       `;
 
-      for(let row = 1; row <= 7; row++){
-        for(let col = 1; col <= 6; col++){
+      // 除號
+      html += `
+        <div class="line-top" style="grid-column:2 / 6; grid-row:2;"></div>
+        <div class="line-left" style="grid-column:2; grid-row:2 / ${Math.min(5, totalRows + 1)};"></div>
+      `;
+
+      // 每一步減法橫線
+      for(const line of lines){
+        html += `
+          <div class="minus-line"
+               style="grid-row:${line.row}; grid-column:${line.startCol} / ${line.endCol + 1};">
+          </div>
+        `;
+      }
+
+      // 數字 / 空格
+      for(let row = 1; row <= totalRows; row++){
+        for(let col = 1; col <= 5; col++){
           const found = cells.find(c => c.row === row && c.col === col);
           if(!found) continue;
 
@@ -480,10 +505,12 @@
       html += `
           </div>
         </div>
-        <div class="hint">題目只挖掉幾個關鍵數字，讓解題者補上。</div>
-        <div class="eq">${showAnswers
-          ? `${problem.dividend} ÷ ${problem.divisor} = ${problem.quotient}${problem.remainder ? ` … ${problem.remainder}` : ""}`
-          : `${problem.dividend} ÷ ${problem.divisor} = ______`}</div>
+        <div class="hint">每一步已按百位、十位、個位對齊，並加上減法橫線。</div>
+        <div class="eq">${
+          showAnswers
+            ? `${problem.dividend} ÷ ${problem.divisor} = ${problem.quotient}${problem.remainder ? ` … ${problem.remainder}` : ""}`
+            : `${problem.dividend} ÷ ${problem.divisor} = ______`
+        }</div>
       `;
 
       div.innerHTML = html;
